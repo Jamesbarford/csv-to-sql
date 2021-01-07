@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 		std::cerr
 			<< "Invalid argument count\n"
 			<< "arg 1 must be the path to the csv \n"
-			<< "arg 2 is the output name i.e table.sql \n";
+			<< "arg 2 is the output destination name i.e ./dir/table.sql \n";
 	}
 
 	std::string query = csv_to_sql(argv[1], argv[2]);
