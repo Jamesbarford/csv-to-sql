@@ -63,6 +63,7 @@ datum::DataType TypeHeuristic::get_likely_type()
 			likely_type = type;
 			acc = count;
 		}
-	};
+	}
+
 	return likely_type;
 }
