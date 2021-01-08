@@ -22,7 +22,7 @@ std::string csv_to_sql(std::string const &path, std::string const &table_name, T
 	std::ostringstream query;
 
 	query << make_create_statement(type_mapping, table_name);
-	query << make_insert_statement_from_csv(type_mapping, path);
+	query << make_insert_statement_from_csv(type_mapping, path, table_name);
 
 	return query.str();
 }
@@ -84,13 +84,18 @@ std::string make_create_statement(TypeMapping &type_mapping, std::string const &
 {
 	std::ostringstream create_statement;
 
-	create_statement << "CREATE TABLE " << table_name << " (";
+	create_statement << "CREATE TABLE " << stringify_double(table_name) << " (";
 	for (auto [header_idx, header] : type_mapping.headers_map)
 	{
 		if (header_idx != 0)
 			create_statement << ' ';
 
-		create_statement << stringify(header) << ' ' << datum_type_to_sqlite_type(type_mapping[header].type);
+		create_statement << stringify_double(header) << ' ';
+		OutputParseInstruction instruction = type_mapping[header];
+		if (instruction.output_type.has_value() && !instruction.output_type.value().empty())
+			create_statement << instruction.output_type.value();
+		else
+			datum_type_to_sqlite_type(instruction.type);
 		if (header_idx + 1 != type_mapping.headers_map.size())
 			create_statement << ',';
 	}
@@ -99,9 +104,22 @@ std::string make_create_statement(TypeMapping &type_mapping, std::string const &
 	return create_statement.str();
 }
 
-std::string make_insert_statement_from_csv(TypeMapping &type_mapping, std::string const &path)
+std::string make_insert_statement_from_csv(TypeMapping &type_mapping, std::string const &path, std::string const &table_name)
 {
 	std::ostringstream insert_statement;
+
+	insert_statement << "INSERT INTO " << stringify_double(table_name) << " (";
+
+	for (auto [header_idx, header] : type_mapping.headers_map)
+	{
+		if (header_idx != 0)
+			insert_statement << ' ';
+		insert_statement << stringify_double(header) << ' ';
+		if (header_idx + 1 != type_mapping.headers_map.size())
+			insert_statement << ',';
+	}
+
+	insert_statement << ") VALUES\n";
 
 	traverse_csv(path, [&](std::string csv_string, size_t row_index) {
 		if (row_index != 0)
