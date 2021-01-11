@@ -15,26 +15,129 @@
 */
 
 TypeInstructionMap create_type_instruction_map_from_sample(std::string const &path);
+void write_sql_statement(std::ostream &query, TypeInstructionMap &type_instruction_map, std::string const &table_name, std::string const &path);
+void write_header(std::ostream &query, std::string const &file_name);
+void write_create_statement(std::ostream &query, TypeInstructionMap &type_instruction_map, std::string const &table_name);
+void write_insert_statement(std::ostream &query, TypeInstructionMap &type_instruction_map, std::string const &table_name, std::string const &path);
 
-std::string csv_to_sql(std::string const &path, std::string const &table_name, TypeInstructionMap &type_instruction_map)
+std::string csv_to_sql_string(std::string const &path, std::string const &table_name, TypeInstructionMap &type_instruction_map)
 {
+	datum::set_error_severity(datum::ErrorSeverity::Logging);
 	std::ostringstream query;
-
-	query << make_create_statement(type_instruction_map, table_name);
-	query << make_insert_statement_from_csv(type_instruction_map, path, table_name);
-
+	write_sql_statement(query, type_instruction_map, table_name, path);
 	return query.str();
+}
+
+void csv_to_sql_file(std::string const &path, std::string const &table_name, TypeInstructionMap &type_instruction_map)
+{
+	datum::set_error_severity(datum::ErrorSeverity::Logging);
+	std::ofstream query;
+	query.open(table_name + ".sql");
+	write_sql_statement(query, type_instruction_map, table_name, path);
+	query.close();
+}
+
+void write_sql_statement(std::ostream &query, TypeInstructionMap &type_instruction_map, std::string const &table_name, std::string const &path)
+{
+	write_header(query, table_name);
+	write_create_statement(query, type_instruction_map, table_name);
+	write_insert_statement(query, type_instruction_map, table_name, path);
+}
+
+void write_header(std::ostream &query, std::string const &file_name)
+{
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch());
+
+	query << "-- -------------------------------------------------------------\n"
+		  << "-- CSV to sql conversion \n"
+		  << "-- https://github.com/Jamesbarford\n"
+		  << "--\n"
+		  << "-- File name: " << file_name << '\n'
+		  << "-- Created at: " << to_date_string(ms.count(), "%Y-%m-%dT%H:%M:%SZ") << '\n'
+		  << "-- -------------------------------------------------------------\n\n";
+}
+
+void write_create_statement(std::ostream &query, TypeInstructionMap &type_instruction_map, std::string const &table_name)
+{
+	query << "CREATE TABLE " << stringify_double(table_name) << " (";
+
+	type_instruction_map.for_each([&](std::string const &header, TypeInstruction const &type_instruction) -> void {
+		std::string output_type = std::get<1>(type_instruction);
+		unsigned int column_index = std::get<2>(type_instruction);
+
+		query << stringify_double(header) << ' ' << output_type;
+
+		if (column_index + 1 != type_instruction_map.size())
+			query << ", ";
+	});
+
+	query << ");\n\n";
+}
+
+void write_insert_statement(std::ostream &query, TypeInstructionMap &type_instruction_map, std::string const &table_name, std::string const &path)
+{
+	query << "INSERT INTO " << stringify_double(table_name) << " (";
+
+	type_instruction_map.for_each([&](std::string const &header, TypeInstruction const &type_instruction) -> void {
+		unsigned int column_index = std::get<2>(type_instruction);
+
+		query << stringify_double(header);
+		if (column_index + 1 != type_instruction_map.size())
+			query << ", ";
+	});
+
+	query << ") VALUES\n";
+
+	traverse_csv(path, [&](std::string csv_string, size_t row_index) {
+		if (row_index != 0)
+			query << "(";
+		split_row(csv_string, [&](std::string raw_data, size_t column_idx) {
+			if (row_index != 0)
+			{
+				TypeInstruction type_instruction = type_instruction_map.at(column_idx);
+				datum::DataType datum_type = std::get<3>(type_instruction);
+				datum::Pattern datum_pattern = std::get<4>(type_instruction);
+
+				datum::Datum d = datum::parse(raw_data, datum::ParseInstruction(datum_type, datum_pattern));
+
+				d.visit([&](auto entry, auto type) {
+					query << stringify(format_datum(entry, type));
+					if (type_instruction_map.size() - 1 != column_idx)
+						query << ", ";
+				});
+			}
+		});
+		if (row_index != 0)
+			query << "),\n";
+	});
+
+	// rewind by two and replace the ",\n" with a ";\n" to terminate sql
+	query.seekp(-2, std::ios_base::end);
+	query << ";\n";
+}
+
+/**
+ * These methods take a sample of the data to make an educated approximation of conversions
+ * and output types by attempting to parse the first 100 rows
+ *
+*/
+
+void csv_to_sql_file(std::string const &path, std::string const &table_name)
+{
+	TypeInstructionMap type_instruction_map = create_type_instruction_map_from_sample(path);
+	csv_to_sql_file(path, table_name, type_instruction_map);
 }
 
 std::string csv_to_sql(std::string const &path, std::string const &table_name)
 {
-	datum::set_error_severity(datum::ErrorSeverity::Silence);
 	TypeInstructionMap type_instruction_map = create_type_instruction_map_from_sample(path);
-	return csv_to_sql(path, table_name, type_instruction_map);
+	return csv_to_sql_string(path, table_name, type_instruction_map);
 }
 
 TypeInstructionMap create_type_instruction_map_from_sample(std::string const &path)
 {
+	datum::set_error_severity(datum::ErrorSeverity::Silence);
 	ColumnToHeader headers_map;
 	SampleRows sample_rows;
 	std::vector<std::string> partial_rows;
@@ -56,90 +159,4 @@ TypeInstructionMap create_type_instruction_map_from_sample(std::string const &pa
 	});
 
 	return TypeInstructionMap::__from_headers_sample(headers_map, sample_rows);
-}
-
-std::string make_create_statement(TypeInstructionMap &type_instruction_map, std::string const &table_name)
-{
-	std::ostringstream create_statement;
-
-	create_statement << "CREATE TABLE " << stringify_double(table_name) << " (";
-
-	type_instruction_map.for_each([&](std::string const &header, TypeInstruction const &type_instruction) -> void {
-		std::string output_type = std::get<1>(type_instruction);
-		unsigned int column_index = std::get<2>(type_instruction);
-
-		create_statement << stringify_double(header) << ' ' << output_type;
-
-		if (column_index + 1 != type_instruction_map.size())
-			create_statement << ", ";
-	});
-
-	create_statement << ");\n\n";
-
-	return create_statement.str();
-}
-
-std::string make_insert_statement_from_csv(TypeInstructionMap &type_instruction_map, std::string const &path, std::string const &table_name)
-{
-	std::ostringstream insert_statement;
-
-	insert_statement << "INSERT INTO " << stringify_double(table_name) << " (";
-
-	type_instruction_map.for_each([&](std::string const &header, TypeInstruction const &type_instruction) -> void {
-		unsigned int column_index = std::get<2>(type_instruction);
-
-		insert_statement << stringify_double(header);
-		if (column_index + 1 != type_instruction_map.size())
-			insert_statement << ", ";
-	});
-
-	insert_statement << ") VALUES\n";
-
-	traverse_csv(path, [&](std::string csv_string, size_t row_index) {
-		if (row_index != 0)
-			insert_statement << "(";
-		split_row(csv_string, [&](std::string raw_data, size_t column_idx) {
-			if (row_index != 0)
-			{
-				TypeInstruction type_instruction = type_instruction_map.at(column_idx);
-				datum::DataType datum_type = std::get<3>(type_instruction);
-				datum::Pattern datum_pattern = std::get<4>(type_instruction);
-
-				datum::Datum d = datum::parse(raw_data, datum::ParseInstruction(datum_type, datum_pattern));
-
-				d.visit([&](auto entry, auto type) {
-					insert_statement << stringify(format_datum(entry, type));
-					if (type_instruction_map.size() - 1 != column_idx)
-						insert_statement << ", ";
-				});
-			}
-		});
-		if (row_index != 0)
-			insert_statement << "),\n";
-	});
-
-	std::string query_string = insert_statement.str();
-	query_string.at(query_string.size() - 2) = ';';
-
-	return query_string;
-}
-
-void write_to_file(std::string &query_string, std::string const &file_name)
-{
-	std::ofstream file_stream;
-	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-		std::chrono::system_clock::now().time_since_epoch());
-
-	file_stream.open(file_name);
-
-	file_stream << "-- -------------------------------------------------------------\n"
-				<< "-- CSV to sql conversion \n"
-				<< "-- https://github.com/Jamesbarford\n"
-				<< "--\n"
-				<< "-- File name: " << file_name << '\n'
-				<< "-- Created at: " << to_date_string(ms.count(), "%Y-%m-%dT%H:%M:%SZ") << '\n'
-				<< "-- -------------------------------------------------------------\n\n";
-
-	file_stream << query_string;
-	file_stream.close();
 }

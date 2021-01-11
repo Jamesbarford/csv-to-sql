@@ -13,10 +13,10 @@
 #define stringify(x) ('\'' + x + '\'')
 #define stringify_double(x) ('"' + x + '"')
 
-std::string csv_to_sql(std::string const &path, std::string const &table_name, TypeInstructionMap &type_instruction_map);
-std::string csv_to_sql(std::string const &path, std::string const &table_name);
-std::string make_insert_statement_from_csv(TypeInstructionMap &type_instruction_map, std::string const &path, std::string const &table_name);
-std::string make_create_statement(TypeInstructionMap &type_instruction_map, std::string const &table_name);
-void write_to_file(std::string &query, std::string const &file_name);
+std::string csv_to_sql_string(std::string const &path, std::string const &table_name, TypeInstructionMap &type_instruction_map);
+std::string csv_to_sql_string(std::string const &path, std::string const &table_name);
+
+void csv_to_sql_file(std::string const &path, std::string const &table_name, TypeInstructionMap &type_instruction_map);
+void csv_to_sql_file(std::string const &path, std::string const &table_name);
 
 #endif

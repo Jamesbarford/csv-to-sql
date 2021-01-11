@@ -20,7 +20,4 @@ int main(int argc, char *argv[])
 	type_instruction_map.insert(TypeInstruction("start_date", "TIMESTAMP", 2, datum::DataType::Date, "%Y-%m-%d"));
 	type_instruction_map.insert(TypeInstruction("end_date", "TIMESTAMP", 3, datum::DataType::Date, "%Y-%m-%d"));
 	type_instruction_map.insert(TypeInstruction("uuid_2", "TEXT", 4, datum::DataType::String));
-
-	std::string query = csv_to_sql("./test-csv/2thou.csv", "2thou", type_instruction_map);
-	write_to_file(query, "2thou.sql");
 }
