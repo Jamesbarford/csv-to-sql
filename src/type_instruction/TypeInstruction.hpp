@@ -3,20 +3,25 @@
 
 #include <string>
 #include <map>
+#include <functional>
 #include "../external/datum_parser.hpp"
-#include "../type_mapping/TypeMapping.hpp"
+#include "../type_heuristics/TypeHeuristicMap.hpp"
 
+// TypeInstruction("start_date", "TIMESTAMP", 0, datum::DataType::Date, "%Y-%m-%d")
 typedef std::tuple<std::string, std::string, unsigned int, datum::DataType, datum::Pattern> TypeInstruction;
-typedef std::map<std::string, TypeInstruction> TypeInstructionMap;
 
-class TypeMap
+class TypeInstructionMap
 {
 public:
-	TypeInstruction &operator[](std::string const &key);
-	TypeMapping to_type_mapping();
+	void for_each(std::function<void(std::string const &, TypeInstruction const &)>);
+	void insert(TypeInstruction const &type_instruction);
+	TypeInstruction at(unsigned int const &column_index);
+	TypeInstructionMap static __from_headers_sample(ColumnToHeader const &headers_map, SampleRows const &sample_rows);
+	unsigned int size();
 
 private:
-	TypeInstructionMap type_map;
+	std::map<std::string, TypeInstruction> type_map;
+	ColumnToHeader column_to_header;
 };
 
 #endif

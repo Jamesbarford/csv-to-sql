@@ -1,28 +1,70 @@
 #include "TypeInstruction.hpp"
 
-TypeInstruction &TypeMap::operator[](std::string const &key)
+std::string datum_type_to_sqlite_type(datum::DataType const &type);
+
+void TypeInstructionMap::insert(TypeInstruction const &type_instruction)
 {
-	return type_map[key];
+	unsigned int column_index = std::get<2>(type_instruction);
+	std::string header = std::get<0>(type_instruction);
+
+	column_to_header[column_index] = header;
+	type_map[header] = type_instruction;
 }
 
-// TypeInstruction("start_date", "TIMESTAMP", 0, datum::DataType::Date, "%Y-%m-%d")
-TypeMapping TypeMap::to_type_mapping()
+TypeInstruction TypeInstructionMap::at(unsigned int const &column_index)
 {
-	ColumnToHeader header_map;
-	OutputParseInstructionMap mapping;
+	std::string header = column_to_header[column_index];
+	return type_map[header];
+}
 
-	for (auto [header, type_instruction] : type_map)
+/* the order is defined by the column to header map which is keyed by the column index */
+void TypeInstructionMap::for_each(std::function<void(std::string const &header, TypeInstruction const &instruction)> iteratee)
+{
+	for (auto [column_index, header] : column_to_header)
+		iteratee(header, type_map[header]);
+}
+
+unsigned int TypeInstructionMap::size()
+{
+	return type_map.size();
+}
+
+TypeInstructionMap TypeInstructionMap::__from_headers_sample(ColumnToHeader const &headers_map, SampleRows const &sample_rows)
+{
+	TypeInstructionMap type_instruction_map;
+	TypeHeuristicMap type_heuristics = TypeHeuristicMap::create(headers_map, sample_rows);
+
+	for (auto [column_idx, header] : headers_map)
 	{
-		std::string output_type = std::get<1>(type_instruction);
-		unsigned int column_index = std::get<2>(type_instruction);
-		datum::DataType datum_type = std::get<3>(type_instruction);
-		datum::Pattern datum_pattern = std::get<4>(type_instruction);
-
-		OutputParseInstruction parse_instruction = OutputParseInstruction(datum_type, datum_pattern, output_type);
-
-		header_map.insert({column_index, header});
-		mapping.insert({header, parse_instruction});
+		datum::ParseInstruction parse_instruction = type_heuristics.get_parse_instruction(header);
+		type_instruction_map.insert(TypeInstruction(
+			header,
+			datum_type_to_sqlite_type(parse_instruction.type),
+			column_idx,
+			parse_instruction.type,
+			parse_instruction.pattern));
 	}
 
-	return TypeMapping(header_map, mapping);
+	return type_instruction_map;
+}
+
+std::string datum_type_to_sqlite_type(datum::DataType const &type)
+{
+	switch (type)
+	{
+	case datum::DataType::Currency:
+	case datum::DataType::Float:
+	case datum::DataType::Percentage:
+		return "REAL";
+
+	case datum::DataType::Integer:
+		return "INTEGER";
+
+	case datum::DataType::Date:
+	case datum::DataType::String:
+		return "TEXT";
+
+	default:
+		break;
+	}
 }
