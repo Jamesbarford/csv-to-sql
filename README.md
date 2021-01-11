@@ -19,15 +19,18 @@ std::string csv_to_sql_string(std::string const &path, std::string const &table_
 std::string csv_to_sql_string(std::string const &path, std::string const &tab);
 ```
 
+### `TypeInstructionMap`
+
+### n.b 🚨
+If no `TypeInstructionMap` is provided a best guess will be made at what the data types are and the `SQL` output type will be a `SQLite` type. This is highly discouraged as it is an approximation the tendency for inaccuracy would be high.
+
 A `TypeInstructionMap` can be instantiated in the following way:
 
 - column_name -> string
 - sql_output_type -> string
 - column_index -> unsigned int
 - parsing_type -> datum::DataType, of which can be: `datum::DataType::Integer`, `datum::DataType::Date`, `datum::DataType::String`, `datum::DataType::Float`, `datum::DataType::Currency` or `datum::DataType::Percentage`
-- pattern -> this is only used for dates e.g to parse: `"2020-04-11"` the pattern would need to be `"%Y-%m-%d"`, a full list can be found: `https://en.cppreference.com/w/cpp/chrono/parse`
-
-If no `TypeInstructionMap` is provided a best guess will be made at what the data types are and the `SQL` output type will be a `SQLite` type. This is highly discouraged as it is an approximation the tendency for inaccuracy would be high.
+- pattern -> this is only used for dates e.g to parse: `"2020-04-11"` the pattern would need to be `"%Y-%m-%d"`, a full list can be found [here](https://en.cppreference.com/w/cpp/chrono/parse)
 
 ## Example
 
