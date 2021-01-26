@@ -48,6 +48,25 @@ TypeInstructionMap TypeInstructionMap::__from_headers_sample(ColumnToHeader cons
 	return type_instruction_map;
 }
 
+datum::DataType raw_to_datum_type(std::string const &raw_type)
+{
+	std::map<std::string, datum::DataType> raw_to_datum_type = {
+		{"string", datum::DataType::String},
+		{"date", datum::DataType::Date},
+		{"float", datum::DataType::Float},
+		{"int", datum::DataType::Integer},
+		{"currency", datum::DataType::Currency},
+		{"percentage", datum::DataType::Percentage}};
+
+	if (raw_to_datum_type.count(raw_type) <= 0)
+	{
+		std::cout << "Raw type : '" << raw_type << "' is invalid defaulting to type 'String'\n";
+		return datum::DataType::String;
+	}
+
+	return raw_to_datum_type[raw_type];
+}
+
 std::string datum_type_to_sqlite_type(datum::DataType const &type)
 {
 	switch (type)
