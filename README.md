@@ -24,9 +24,9 @@ row_number,uuid,start_date,end_date,uuid_2
 This would output the file `"example.sql"`:
 
 ```sql
-CREATE TABLE "2thou" ("row_number" INTEGER, "uuid" TEXT, "start_date" TIMESTAMP, "end_date" TIMESTAMP, "uuid_2" TEXT);
+CREATE TABLE "example" ("row_number" INTEGER, "uuid" TEXT, "start_date" TIMESTAMP, "end_date" TIMESTAMP, "uuid_2" TEXT);
 
-INSERT INTO "2thou" ("row_number", "uuid", "start_date", "end_date", "uuid_2") VALUES
+INSERT INTO "example" ("row_number", "uuid", "start_date", "end_date", "uuid_2") VALUES
 ('1', '83e0721f-f426-46f8-b2fa-6b3ed6246860', '2020-12-23T00:00:00Z', '2020-12-26T00:00:00Z', '2687ec46-0e3d-4842-b582-091050c31252'),
 ('2', '48540f8a-e7a9-4670-8283-6452895f9933', '2021-01-11T00:00:00Z', '2021-01-04T00:00:00Z', '3c6627a6-1bae-4865-88b5-95df12cf340b'),
 ('3', '653833a1-4d4b-4b6c-8c6f-08c00e82c6cb', '2021-01-05T00:00:00Z', '2020-12-29T00:00:00Z', '242b03bf-887f-4486-8ee6-c412d9da1156');
@@ -45,13 +45,11 @@ __example:__
 
 ```json
 {
-	"id": ["INTEGER", 0, "int"],
-	"name": ["VARCHAR(50)", 1, "string"],
-	"last_name": ["VARCHAR(50)", 2, "string"],
-	"job": ["VARCHAR(50)", 3, "string"],
-	"involves_code": ["BOOLEAN", 4, "string"],
-	"date": ["TIMESTAMP", 5, "date", "%Y/%m/%d"],
-	"uuid": ["TEXT", 6, "string"]
+	"row_number": ["INTEGER", 0, "int"],
+	"uuid": ["VARCHAR(50)", 1, "string"],
+	"start_date": ["TIMESTAMP", 2, "date", "%Y/%m/%d"],
+	"end_date": ["TIMESTAMP", 3, "date", "%Y/%m/%d"],
+	"uuid_2": ["TEXT", 4, "string"],
 }
 ```
 
