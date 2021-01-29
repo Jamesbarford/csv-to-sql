@@ -39,7 +39,9 @@ The value is an array:
 - `0:` `SQL` type i.e `"INTEGER"`
 - `1:` column index, which column this refers to
 - `2:` raw data type
-- `3:` date pattern
+- `3:` date pattern, for a full list see format string rules: https://en.cppreference.com/w/cpp/chrono/parse
+
+A date will be parsed to a format matching `'2020-12-26T00:00:00Z'`
 
 __example:__
 
@@ -47,8 +49,8 @@ __example:__
 {
 	"row_number": ["INTEGER", 0, "int"],
 	"uuid": ["VARCHAR(50)", 1, "string"],
-	"start_date": ["TIMESTAMP", 2, "date", "%Y/%m/%d"],
-	"end_date": ["TIMESTAMP", 3, "date", "%Y/%m/%d"],
+	"start_date": ["TIMESTAMP", 2, "date", "%Y-%m-%d"],
+	"end_date": ["TIMESTAMP", 3, "date", "%Y-%m-d"],
 	"uuid_2": ["TEXT", 4, "string"],
 }
 ```

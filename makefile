@@ -1,6 +1,6 @@
 OUT_DIR			= output
 SRC 			= ./src
-LINK_TARGET 	= $(OUT_DIR)/main.out
+LINK_TARGET 	= csv-to-sql
 SRC_FILES 		= $(shell find $(SRC) -name '*.cpp')
 OBJS 			= $(patsubst $(SRC)/%.cpp, $(OUT_DIR)/%.o, $(SRC_FILES))
 REBUILDABLES	= $(OBJS) $(LINK_TARGET)

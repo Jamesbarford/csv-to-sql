@@ -19,15 +19,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	std::cout << argv[3] << '\n';
-
 	json json_schema = json::parse(std::ifstream(argv[3]));
 
 	TypeInstructionMap type_instruction_map;
 
 	for (auto [key, value] : json_schema.items())
 	{
-		std::cout << value << '\n';
 		if (value.size() < 3)
 		{
 			std::cerr << "JSON array needs to contain 3 values minimum\n"
@@ -49,5 +46,7 @@ int main(int argc, char *argv[])
 			value.size() == 4 ? value.at(3).get<std::string>() : ""));
 	}
 
+	std::cout << "Generating SQL file..." << '\n';
 	csv_to_sql_file(argv[1], argv[2], type_instruction_map);
+	std::cout << argv[2] << ".sql successfully created" << '\n';
 }
