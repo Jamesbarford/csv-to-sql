@@ -15,20 +15,31 @@ int main(int argc, char *argv[])
 			<< "arg 1: path to the csv \n"
 			<< "arg 2: table name \n"
 			<< "arg 3: JSON schema \n";
+		exit(1);
+		return 1;
 	}
 
-	json json_schema = json::parse(std::ifstream("./test.json"));
+	std::cout << argv[3] << '\n';
+
+	json json_schema = json::parse(std::ifstream(argv[3]));
 
 	TypeInstructionMap type_instruction_map;
 
 	for (auto [key, value] : json_schema.items())
 	{
+		std::cout << value << '\n';
 		if (value.size() < 3)
+		{
 			std::cerr << "JSON array needs to contain 3 values minimum\n"
 					  << "Required: \n"
-					  << "0: SQL type, 1: column index of csv where value occurs, 2: raw data type \n"
+					  << "0: SQL type\n"
+					  << "1: column index of csv where value occurs\n"
+					  << "2: raw data type \n"
 					  << "Optional: \n"
-					  << "3: date pattern i.e %Y-%m-%d";
+					  << "3: date pattern i.e %Y-%m-%d\n";
+			exit(1);
+			return 1;
+		}
 
 		type_instruction_map.insert(TypeInstruction(
 			key,
@@ -38,5 +49,5 @@ int main(int argc, char *argv[])
 			value.size() == 4 ? value.at(3).get<std::string>() : ""));
 	}
 
-	csv_to_sql_file("./test-csv/2thou.csv", "2thou", type_instruction_map);
+	csv_to_sql_file(argv[1], argv[2], type_instruction_map);
 }
